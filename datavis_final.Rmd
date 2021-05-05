@@ -1,0 +1,120 @@
+---
+title: "3graphs"
+author: "Ben"
+date: "5/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readr)
+library(RColorBrewer)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+#I got this data from kaggle and it downloaded it and saved it as a csv. It has every team who has made it to the final 4 since 1970 and how far they made it in the final four, as well as the conference they play in
+
+
+
+
+ncaa <- read_csv("~/Challenge_2/ncaa.csv")
+#read my data in
+#View(ncaa)
+
+summary(ncaa)
+#Good all numeric variables are numeric and all categorical variables are characters
+head(ncaa)
+glimpse(ncaa)
+#Create a subset in which I select only teams that currently play in the Pac-12
+pac12 = ncaa %>%
+  filter(Conference == 'Pacific-10' | Conference == 'Pacific-8' | Conference == 'AAWU' | Conference == 'Pacific- 12' | Conference == 'Pacific Coast' | School == 'Colorado' | School == 'Utah')
+# Add a column of 1 so that I can perform arithmatic and add values to sum final 4 appearences
+pac12 <- pac12 %>%
+  mutate(one = 1)
+#There is a problem! UCLA has one data point that has an asterisk, I will remove this from the data because it is in illegitamite championship. I then groupby school to create a variable 'Appearences' which is the sum of my one column for each school.
+pac_12_grouped_plot <- pac12 %>%
+  filter(School != 'UCLA*') %>%
+  group_by(School) %>%                   
+  summarise_at(vars(one),        
+               list(Appearences = sum))
+#Create the plot I may have gone overboard with the color using it as fill just to ensure the viewer gets the point. I then reorder my graph, add proper titles
+pac_12_grouped_plot %>%
+  ggplot(aes(x = reorder(School, -Appearences), y = Appearences, fill = School)) +
+  geom_col() +
+  theme(axis.text.x = element_text(face = "bold", 
+                           size = 7, angle = 90)) +
+  scale_y_discrete(name ="Finals Appearences", 
+                    limits=c("1","2",'3','4','5','6','7','8','9','10','11','12','13','14','15','16', '17')) +
+  scale_x_discrete(name = 'School')
+  guides(fill=FALSE)
+  ggtitle("Pac-12 Final 4 Appearences") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(name ="College Team") +
+  scale_fill_brewer(palette = "Paired")
+#Use Paired as colorblind friendly pallete
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+top_dogs <- ncaa %>%
+  filter(School == 'Kentucky' | School == 'UCLA' | School == 'Duke' | School == 'Kansas' | School == 'North Carolina')
+#Create row of 1 to perform arithmatic
+top_dogs <- top_dogs %>%
+  mutate(one = 1)
+#Create mini algorithm to measure the accumulate appearences between the schools
+top_dogs <- top_dogs %>%
+  group_by(School, Year) %>%                   
+  summarise_at(vars(one),        
+               list(Appearences = sum))  %>%
+  mutate(Accumulated_appearces = cumsum(Appearences))
+#Graph complete with set x and y axis
+top_dogs %>%
+  ggplot(aes(x = Year,y = Accumulated_appearces ,color=School,group=School, yintercept = 0)) + 
+  geom_line() + 
+  geom_point() +
+  scale_y_discrete(name ="Finals Appearences",
+                   limits=c("1","2",'3','4','5','6','7','8','9','10','11','12','13','14','15','16', '17','18','19','20')) +
+  ggtitle("Cumulative Finals Appearences Since 1940") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  expand_limits(x = 1940, y = 0)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+```{r stacked, echo=FALSE}
+
+most_finals <- ncaa %>%
+  filter(School == 'Kentucky' | School == 'UCLA' | School == 'Duke' | School == 'Kansas' | School == 'North Carolina' | School == 'Arizona')
+
+most_finals <- most_finals %>%
+  mutate(one = 1)
+
+ordered_most_finals <- most_finals[order(-most_finals$`Place (1st, 2nt, 3rd)`),]
+
+ordered_most_finals %>%
+ggplot(aes(fill=factor(`Place (1st, 2nt, 3rd)`), y=one, x=School)) + 
+  geom_bar(position="fill", stat="identity") +
+  labs(fill = "Place") +
+  scale_y_continuous(name = 'Percent of Finishes') +
+  ggtitle("Historical Finishes in Final 4") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_manual(values = c('navyblue', 'dodgerblue2', 'cadetblue2'))
+
+
+
+
+
+```
